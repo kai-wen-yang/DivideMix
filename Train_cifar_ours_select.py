@@ -17,7 +17,7 @@ import wandb
 from typing import List, Optional, Tuple, Union, cast
 import torchvision
 
-parser = argparse.ArgumentParser(description='PyTorch CIFAR Training')。
+parser = argparse.ArgumentParser(description='PyTorch CIFAR Training')
 parser.add_argument('--batch_size', default=64, type=int, help='train batchsize') 
 parser.add_argument('--lr', '--learning_rate', default=0.02, type=float, help='initial learning rate')
 parser.add_argument('--noise_mode',  default='sym')
@@ -89,11 +89,11 @@ def clamp(X, lower_limit, upper_limit):
 
 def get_attack(model, inputs, targets_u, y_ori, flat_feat_ori, args):
     if args.dataset == 'cifar10':
-        upper_limit = ((1 - mu_cifar10) / std_cifar10).to(args.device)
-        lower_limit = ((0 - mu_cifar10) / std_cifar10).to(args.device)
+        upper_limit = ((1 - mu_cifar10) / std_cifar10).cuda()
+        lower_limit = ((0 - mu_cifar10) / std_cifar10).cuda()
     elif args.dataset == 'cifar100':
-        upper_limit = ((1 - mu_cifar100) / std_cifar100).to(args.device)
-        lower_limit = ((0 - mu_cifar100) / std_cifar100).to(args.device)
+        upper_limit = ((1 - mu_cifar100) / std_cifar100).cuda()
+        lower_limit = ((0 - mu_cifar100) / std_cifar100).cuda()
 
     perturbations = torch.zeros_like(inputs)
     perturbations.uniform_(-0.01, 0.01)
@@ -374,7 +374,7 @@ if args.dataset=='cifar10':
     warm_up = 10
 elif args.dataset=='cifar100':
     warm_up = 30
-wandb.init(config=args)
+wandb.init(name=name, config=args)
 loader = dataloader.cifar_dataloader(args.dataset,r=args.r,noise_mode=args.noise_mode,batch_size=args.batch_size,num_workers=5,\
     root_dir=args.data_path,log=stats_log,noise_file='%s/%.1f_%s.json'%(args.data_path,args.r,args.noise_mode))
 

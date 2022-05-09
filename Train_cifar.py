@@ -121,7 +121,7 @@ def train(epoch,net,net2,optimizer,labeled_trainloader,unlabeled_trainloader):
                 %(args.dataset, args.r, args.noise_mode, epoch, args.num_epochs, batch_idx+1, num_iter, Lx.item(), Lu.item()))
         sys.stdout.flush()
         wandb.log({'loss/l_u': Lu.data.item(),
-        'loss/l_x': Lx.data.item())
+        'loss/l_x': Lx.data.item()})
 
 def warmup(epoch,net,optimizer,dataloader):
     net.train()
@@ -222,7 +222,7 @@ if args.dataset=='cifar10':
     warm_up = 10
 elif args.dataset=='cifar100':
     warm_up = 30
-wandb.init(config=args)
+wandb.init(name=name, config=args)
 loader = dataloader.cifar_dataloader(args.dataset,r=args.r,noise_mode=args.noise_mode,batch_size=args.batch_size,num_workers=5,\
     root_dir=args.data_path,log=stats_log,noise_file='%s/%.1f_%s.json'%(args.data_path,args.r,args.noise_mode))
 
