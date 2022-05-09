@@ -120,6 +120,8 @@ def train(epoch,net,net2,optimizer,labeled_trainloader,unlabeled_trainloader):
         sys.stdout.write('%s:%.1f-%s | Epoch [%3d/%3d] Iter[%3d/%3d]\t Labeled loss: %.2f  Unlabeled loss: %.2f'
                 %(args.dataset, args.r, args.noise_mode, epoch, args.num_epochs, batch_idx+1, num_iter, Lx.item(), Lu.item()))
         sys.stdout.flush()
+        wandb.log({'loss/l_u': Lu.data.item(),
+        'loss/l_x': Lx.data.item())
 
 def warmup(epoch,net,optimizer,dataloader):
     net.train()
@@ -161,6 +163,7 @@ def test(epoch,net1,net2):
     print("\n| Test Epoch #%d\t Accuracy: %.2f%%\n" %(epoch,acc))  
     test_log.write('Epoch:%d   Accuracy:%.2f\n'%(epoch,acc))
     test_log.flush()  
+    wandb.log({'test/acc': acc},commit=False)
 
 def eval_train(model,all_loss):    
     model.eval()
@@ -211,7 +214,7 @@ def create_model():
     model = ResNet18(num_classes=args.num_class)
     model = model.cuda()
     return model
-
+name = args.dataset + 'noise_{}_lambda_{}'.format(args.r, args.bound, args.lambda_u)
 stats_log=open('./checkpoint/%s_%.1f_%s'%(args.dataset,args.r,args.noise_mode)+'_stats.txt','w') 
 test_log=open('./checkpoint/%s_%.1f_%s'%(args.dataset,args.r,args.noise_mode)+'_acc.txt','w')     
 

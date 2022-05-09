@@ -17,7 +17,7 @@ import wandb
 from typing import List, Optional, Tuple, Union, cast
 import torchvision
 
-parser = argparse.ArgumentParser(description='PyTorch CIFAR Training')
+parser = argparse.ArgumentParser(description='PyTorch CIFAR Training')。
 parser.add_argument('--batch_size', default=64, type=int, help='train batchsize') 
 parser.add_argument('--lr', '--learning_rate', default=0.02, type=float, help='initial learning rate')
 parser.add_argument('--noise_mode',  default='sym')
@@ -37,6 +37,7 @@ parser.add_argument('--adv', action="store_true")
 parser.add_argument('--bound', default=0.02, type=float, help='bound for adversarial')
 parser.add_argument('--num_iterations', default=5, type=int, help='eps for adversarial')
 parser.add_argument('--lam', default=1, type=float, help='bound for adversarial')
+parser.add_argument('--adv_threshold', default=0.5, type=float, help='clean probability threshold')
 args = parser.parse_args()
 
 torch.cuda.set_device(args.gpuid)
@@ -48,7 +49,10 @@ cifar100_mean = (0.5071, 0.4867, 0.4408)
 cifar100_std = (0.2675, 0.2565, 0.2761)
 mu_cifar100 = torch.tensor(cifar100_mean).view(3,1,1)
 std_cifar100 = torch.tensor(cifar100_std).view(3,1,1)
-
+cifar10_mean = (0.4914, 0.4822, 0.4465)
+cifar10_std = (0.2023, 0.1994, 0.2010)
+mu_cifar10 = torch.tensor(cifar10_mean).view(3,1,1)
+std_cifar10 = torch.tensor(cifar10_std).view(3,1,1)
 
 def reconst_images(x_adv, strong_x):
     grid_X = torchvision.utils.make_grid(strong_x[:10].data, nrow=10, padding=2, normalize=True)
@@ -84,8 +88,12 @@ def clamp(X, lower_limit, upper_limit):
 
 
 def get_attack(model, inputs, targets_u, y_ori, flat_feat_ori, args):
-    upper_limit = ((1 - mu_cifar100) / std_cifar100).cuda()
-    lower_limit = ((0 - mu_cifar100) / std_cifar100).cuda()
+    if args.dataset == 'cifar10':
+        upper_limit = ((1 - mu_cifar10) / std_cifar10).to(args.device)
+        lower_limit = ((0 - mu_cifar10) / std_cifar10).to(args.device)
+    elif args.dataset == 'cifar100':
+        upper_limit = ((1 - mu_cifar100) / std_cifar100).to(args.device)
+        lower_limit = ((0 - mu_cifar100) / std_cifar100).to(args.device)
 
     perturbations = torch.zeros_like(inputs)
     perturbations.uniform_(-0.01, 0.01)
@@ -164,7 +172,7 @@ def train(epoch,net,net2,optimizer,labeled_trainloader,unlabeled_trainloader):
             
             pu = (torch.softmax(outputs_u11, dim=1) + torch.softmax(outputs_u12, dim=1) + torch.softmax(outputs_u21, dim=1) + torch.softmax(outputs_u22, dim=1)) / 4       
             confidence, _ = torch.max(pu, dim=-1)
-            mask = torch.cat([confidence, confidence], dim=0).ge(0.15)
+            mask = torch.cat([confidence, confidence], dim=0).ge(args.adv_threshold)
             ptu = pu**(1/args.T) # temparature sharpening
             
             targets_u = ptu / ptu.sum(dim=1, keepdim=True) # normalize
@@ -358,7 +366,7 @@ def create_model(args):
 
     model = model.cuda()
     return model
-
+name = args.dataset + '_noise_{}_lambda_{}_bound_{}_thres_{}_adv_{}'.format(args.r, args.lambda_u, args.bound, args.adv_threshold, args.adv)
 stats_log=open('./checkpoint/advmix%s_%.1f_%s'%(args.dataset,args.r,args.noise_mode)+'_stats.txt','w')
 test_log=open('./checkpoint/advmix%s_%.1f_%s'%(args.dataset,args.r,args.noise_mode)+'_acc.txt','w')
 
